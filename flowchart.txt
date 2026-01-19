@@ -1,0 +1,138 @@
++-------------------------------+
+|             USER              |
+|   (Speaks Order / Questions)  |
++---------------+---------------+
+                |
+                v
++-----------------------------------------------+
+|          VOICE INTERFACE (UI / Kiosk)          |
+|-----------------------------------------------|
+| - Mic Input                                   |
+| - Speaker Output                              |
+| - Optional Text Transcript                   |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|         SPEECH-TO-TEXT (STT) MODULE            |
+|-----------------------------------------------|
+| - Converts voice → text                       |
+| - Noise handling (drive-thru realism)         |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|         INITIAL STATE CREATION                 |
+|-----------------------------------------------|
+| messages = [HumanMessage]                     |
+| order = { items: [], total: 0, status }       |
+| restaurant_id                                 |
+| menu_data_reference                           |
+| missing_info = None                           |
+| confirmation_required = False                 |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|           LANGGRAPH STATE GRAPH                |
+|        (FoodOrderingGraph.build_graph)         |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|              INTENT ROUTER NODE                |
+|-----------------------------------------------|
+| - Order food                                  |
+| - Modify order                                |
+| - Ask menu / price                            |
+| - Cancel order                                |
+| - Confirm order                               |
++---------------+---------------+---------------+
+                |               |
+      (Menu / Order)        (General Query)
+                |               |
+                v               v
++-------------------------------+   +----------------------------------+
+|        MENU / ORDER NODE      |   |      GENERAL RESPONSE NODE       |
+|-------------------------------|   |----------------------------------|
+| - Extract food items          |   | - Small talk                     |
+| - Quantity                    |   | - Clarifications                 |
+| - Size / variants             |   | - Polite fallback                |
++---------------+---------------+   +------------------+---------------+
+                |
+                v
++-----------------------------------------------+
+|            MENU LOOKUP TOOL NODE               |
+|-----------------------------------------------|
+| - Fetch item from menu database                |
+| - Validate availability                       |
+| - Get price & options                         |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|            ORDER STATE UPDATE NODE             |
+|-----------------------------------------------|
+| - Add / remove items                          |
+| - Update quantity                             |
+| - Recalculate total                           |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|            VALIDATION NODE                     |
+|-----------------------------------------------|
+| Checks:                                       |
+| - Missing size / quantity?                    |
+| - Item not available?                         |
+| - Order limit exceeded?                       |
++---------------+---------------+---------------+
+                |               |
+        (Missing Info)      (Valid)
+                |               |
+                v               v
++-------------------------------+   +----------------------------------+
+|   CLARIFICATION QUESTION NODE |   |      CONFIRMATION NODE           |
+|-------------------------------|   |----------------------------------|
+| - Ask one clear question      |   | - Read full order                |
+| - Wait for user response      |   | - Ask "Place the order?"         |
++---------------+---------------+   +------------------+---------------+
+                |                                   |
+                +------------- LOOP ---------------+
+                                                   
+                |
+                v
++-----------------------------------------------+
+|              FINALIZE ORDER NODE               |
+|-----------------------------------------------|
+| - Lock order                                  |
+| - Generate receipt summary                   |
+| - Set status = confirmed                     |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|          TEXT-TO-SPEECH (TTS) MODULE            |
+|-----------------------------------------------|
+| - Convert response → voice                    |
+| - Natural, short drive-thru style             |
++---------------+-------------------------------+
+                |
+                v
++-----------------------------------------------+
+|            VOICE OUTPUT TO USER                |
+|-----------------------------------------------|
+| "Your order is placed. Please proceed."       |
++-----------------------------------------------+
+
+                    FINAL OUTPUT
+     (Confirmed Order + Voice Response to User)
+
+
+🎯 Priority Improvements (If Time-Constrained)
+
+Context tracking (critical for natural conversation)
+Fuzzy menu matching (handles real-world speech errors)
+Error fallback paths (prevents system hanging)
+Confirmation loop-back (users WILL change their mind)
+Timeout handling (don't wait forever)
